@@ -167,20 +167,29 @@ app.get('/api/v1/company', async (req, res) => {
 *     responses:
 *       200:
 *         description: Company with particular ID
+*       400:
+*         description: Input validation Failed
 *       500:
 *         description: Internal server error
 */
-app.get('/api/v1/company/:id', async (req, res) => {
+app.get('/api/v1/company/:id', [
+    check('id').isNumeric().not().isEmpty(),
+], async (req, res) => {
     let id = req.params.id;
     let conn;
     try {
-        conn = await pool.getConnection();
-        const rows = await conn.query('SELECT * FROM company where COMPANY_ID = ?', [id]);
-        //console.log(rows);
-        res.status(200).json(rows);
+        validationResult(req).throw();
+        try {
+            conn = await pool.getConnection();
+            const rows = await conn.query('SELECT * FROM company where COMPANY_ID = ?', [id]);
+            //console.log(rows);
+            res.status(200).json(rows);
+        } catch (e) {
+            res.status(500).send('Error while fetching company with given Id');
+            throw err;
+        }
     } catch (err) {
-        res.status(500).send('Error while fetching company with given Id');
-        throw err;
+        res.status(400).send('Input validation failed');
     } finally {
         if (conn) return conn.end();
     }
@@ -373,10 +382,11 @@ app.patch('/api/v1/company', [
             }
         } catch (e) {
             res.status(500).send('Error from database operations');
+            throw err;
         }
     } catch (err) {
         res.status(400).send('Input validation failed');
-        throw err;
+
     } finally {
         if (conn) return conn.end();
     }
@@ -403,20 +413,30 @@ app.patch('/api/v1/company', [
 *     responses:
 *       200:
 *         description: Success message
+*       400:
+*         description: Input validation Failed
 *       500:
-*          description: Internal server error
+*         description: Internal server error
 */
-app.delete('/api/v1/company/:id', async (req, res) => {
+app.delete('/api/v1/company/:id', [
+    check('id').isNumeric().not().isEmpty(),
+], async (req, res) => {
     let id = req.params.id;
     let conn;
     try {
-        conn = await pool.getConnection();
-        const rows = await conn.query('DELETE FROM company where COMPANY_ID = ?', [id]);
-        //console.log(rows);
-        res.status(200).send('success! record deleted!');
+        validationResult(req).throw();
+        try {
+            conn = await pool.getConnection();
+            const rows = await conn.query('DELETE FROM company where COMPANY_ID = ?', [id]);
+            //console.log(rows);
+            res.status(200).send('success! record deleted!');
+        } catch (e) {
+            res.status(500).send('Error while fetching company with given Id');
+            throw err;
+        }
     } catch (err) {
-        res.status(500).send('Error while fetching company with given Id');
-        throw err;
+        res.status(400).send('Input validation failed');
+
     } finally {
         if (conn) return conn.end();
     }
@@ -442,20 +462,30 @@ app.delete('/api/v1/company/:id', async (req, res) => {
 *     responses:
 *       200:
 *         description: Agents with particular commission rate
+*       400:
+*         description: Input validation Failed
 *       500:
-*          description: Internal server error
+*         description: Internal server error
 */
-app.get('/api/v1/agents', async (req, res) => {
-    console.log(req.query.commission);
+app.get('/api/v1/agents', [
+    check('commission').isNumeric().not().isEmpty(),
+], async (req, res) => {
+    //console.log(req.query.commission);
     let conn;
     try {
-        conn = await pool.getConnection();
-        const rows = await conn.query('SELECT * FROM agents where COMMISSION = ?', [req.query.commission]);
-        //console.log(rows);
-        res.status(200).json(rows);
+        validationResult(req).throw();
+        try {
+            conn = await pool.getConnection();
+            const rows = await conn.query('SELECT * FROM agents where COMMISSION = ?', [req.query.commission]);
+            //console.log(rows);
+            res.status(200).json(rows);
+        } catch (e) {
+
+            res.status(500).send('Error while fetching agents with given commission');
+            throw err;
+        }
     } catch (err) {
-        res.status(500).send('Error while fetching agents with given commission');
-        throw err;
+        res.status(400).send('Input validation failed');
     } finally {
         if (conn) return conn.end();
     }
