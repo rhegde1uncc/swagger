@@ -5,6 +5,8 @@ const port = 3000;
 var cors = require('cors');
 app.use(cors());
 
+const { check, validationResult } = require('express-validator');
+
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -29,21 +31,21 @@ app.use((req, res, next) => {
 });
 
 
-const options = {                                                                                                                                                                                                  
-    swaggerDefinition: {                                                                                                                                                                                           
-      info: {                                                                                                                                                                                                    
-        title: 'test API',                                                                                                                                                                                       
-        version: '1.0.0',                                                                                                                                                                                        
-        description: 'test api is created for system integration class'                                                                                                                                            
-      },                                                                                                                                                                                                         
-      host: '178.128.158.144:3000',                                                                                                                                                                                    
-      basePath: '/',                                                                                                                                                                                             
-    },                                                                                                                                                                                                         
-    apis: ['server.js'],                                                                                                                                                                                     
-};                                                                                                                                                                                                                 
-                                                                                                                                                                                                                   
-const specs = swaggerJsdoc(options);                                                                                                                                                                               
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));  
+const options = {
+    swaggerDefinition: {
+        info: {
+            title: 'test API',
+            version: '1.0.0',
+            description: 'test api is created for system integration class'
+        },
+        host: '178.128.158.144:3000',
+        basePath: '/',
+    },
+    apis: ['server.js'],
+};
+
+const specs = swaggerJsdoc(options);
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 app.get('/', (req, res) => {
     res.send('Hello');
@@ -216,20 +218,31 @@ app.get('/api/v1/company/:id', async (req, res) => {
  *          description: OK
  *        '201':
  *          description: Created
+ *        '400':
+ *          description: Input validation Failed
  *        '500':
  *          description: Internal server error  
  */
-app.post('/api/v1/company', async (req, res) => {
+app.post('/api/v1/company', [
+    check('id').isNumeric().not().isEmpty(),
+    check('name').isLength({ min: 3 }).not().isEmpty().trim(),
+    check('city').isLength({ min: 3 }).not().isEmpty().trim().escape()
+], async (req, res) => {
     const { id, name, city } = req.body;
     let conn;
     try {
-        conn = await pool.getConnection();
-        const rows = await conn.query('INSERT INTO company SET COMPANY_ID = ?, COMPANY_NAME = ?, COMPANY_CITY = ?', [id, name, city]);
-        //console.log(rows);
-        res.status(201).json(rows);
+        validationResult(req).throw();
+        try {
+            conn = await pool.getConnection();
+            const rows = await conn.query('INSERT INTO company SET COMPANY_ID = ?, COMPANY_NAME = ?, COMPANY_CITY = ?', [id, name, city]);
+            //console.log(rows);
+            res.status(201).json(rows);
+        } catch (e) {
+            res.status(500).send('Error while adding company with given details');
+            throw err;
+        }
     } catch (err) {
-        res.status(500).send('Error while adding company with given details');
-        throw err;
+        res.status(400).send('Input validation failed');
     } finally {
         if (conn) return conn.end();
     }
@@ -265,28 +278,39 @@ app.post('/api/v1/company', async (req, res) => {
  *          description: OK
  *        '201':
  *          description: Created
+ *        '400':
+ *          description: Input validation Failed
  *        '500':
  *          description: Internal server error  
  */
-app.put('/api/v1/company', async (req, res) => {
+app.put('/api/v1/company', [
+    check('id').isNumeric().not().isEmpty(),
+    check('name').isLength({ min: 3 }).not().isEmpty().trim(),
+    check('city').isLength({ min: 3 }).not().isEmpty().trim().escape()
+], async (req, res) => {
     const { id, name, city } = req.body;
     let conn;
     try {
-        conn = await pool.getConnection();
-        const rows = await conn.query('SELECT * FROM company where COMPANY_ID = ?', [id]);
-        if (rows.length) {
-            const updaterows = await conn.query('UPDATE company SET COMPANY_NAME = ?, COMPANY_CITY = ? where COMPANY_ID = ?', [name, city, id]);
-            //res.json(updaterows);
-            res.send('Record updated/created successfully');
-        }
-        else {
-            const insertrows = await conn.query('INSERT INTO company SET COMPANY_ID = ?, COMPANY_NAME = ?, COMPANY_CITY = ?', [id, name, city]);
-            //res.json(insertrows);
-            res.status(500).send('Record inserted successfully!');
+        validationResult(req).throw();
+        try {
+            conn = await pool.getConnection();
+            const rows = await conn.query('SELECT * FROM company where COMPANY_ID = ?', [id]);
+            if (rows.length) {
+                const updaterows = await conn.query('UPDATE company SET COMPANY_NAME = ?, COMPANY_CITY = ? where COMPANY_ID = ?', [name, city, id]);
+                //res.json(updaterows);
+                res.send('Record updated/created successfully');
+            }
+            else {
+                const insertrows = await conn.query('INSERT INTO company SET COMPANY_ID = ?, COMPANY_NAME = ?, COMPANY_CITY = ?', [id, name, city]);
+                //res.json(insertrows);
+                res.status(500).send('Record inserted successfully!');
+            }
+        } catch (e) {
+            res.status(500).send('Error from put');
+            throw e;
         }
     } catch (err) {
-        res.status(500).send('Error from put');
-        throw err;
+        res.status(400).send('Input validation failed');
     } finally {
         if (conn) return conn.end();
     }
@@ -321,26 +345,37 @@ app.put('/api/v1/company', async (req, res) => {
  *     responses:
  *        '200':
  *          description: OK
+ *        '400':
+ *          description:  Input Validation Failed
  *        '500':
  *          description: Internal server error 
  */
-app.patch('/api/v1/company', async (req, res) => {
+app.patch('/api/v1/company', [
+    check('id').isNumeric().not().isEmpty(),
+    check('name').isLength({ min: 3 }).not().isEmpty().trim(),
+    check('city').isLength({ min: 3 }).not().isEmpty().trim().escape()
+], async (req, res) => {
     const { id, name, city } = req.body;
     let conn;
     try {
-        conn = await pool.getConnection();
-        const rows = await conn.query('SELECT * FROM company where COMPANY_ID = ?', [id]);
-        if (rows.length) {
-            //console.log('entered update');
-            const updaterows = await conn.query('UPDATE company SET COMPANY_NAME = ?, COMPANY_CITY = ? where COMPANY_ID = ?', [name, city, id]);
-            //res.json(updaterows);
-            res.status(200).send('success! record updated!');
-        }
-        else {
-            res.status(500).send('Error from patch');
+        validationResult(req).throw();
+        try {
+            conn = await pool.getConnection();
+            const rows = await conn.query('SELECT * FROM company where COMPANY_ID = ?', [id]);
+            if (rows.length) {
+                //console.log('entered update');
+                const updaterows = await conn.query('UPDATE company SET COMPANY_NAME = ?, COMPANY_CITY = ? where COMPANY_ID = ?', [name, city, id]);
+                //res.json(updaterows);
+                res.status(200).send('success! record updated!');
+            }
+            else {
+                res.status(500).send('Error from database operations');
+            }
+        } catch (e) {
+            res.status(500).send('Error from database operations');
         }
     } catch (err) {
-        res.status(500).send('Error from patch');
+        res.status(400).send('Input validation failed');
         throw err;
     } finally {
         if (conn) return conn.end();
