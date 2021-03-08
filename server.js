@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const port = 3000;
 
+const axios = require('axios');
+
 var cors = require('cors');
 app.use(cors());
 
@@ -50,6 +52,21 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.get('/', (req, res) => {
     res.send('Hello');
 });
+
+app.get('/say', async (req, res) => {
+    var keyword = req.query.keyword;
+    var url = 'https://q5x4rs1yai.execute-api.us-east-2.amazonaws.com/prod/test?say='
+    //console.log(url + `${keyword}`);
+     await axios.get(url + `${keyword}`)
+        .then(function (response) {
+            //console.log(response.data);
+            res.status(200).json(response.data);
+        })
+        .catch(function (error) {
+            res.status(500).send('Error from Lambda ');
+        })
+    
+})
 
 
 /**
@@ -284,9 +301,9 @@ app.post('/api/v1/company', [
  *               type: string
  *     responses:
  *        '200':
- *          description: OK
+ *          description: Updated successfully
  *        '201':
- *          description: Created
+ *          description: Inserted successfully
  *        '400':
  *          description: Input validation Failed
  *        '500':
@@ -307,12 +324,12 @@ app.put('/api/v1/company', [
             if (rows.length) {
                 const updaterows = await conn.query('UPDATE company SET COMPANY_NAME = ?, COMPANY_CITY = ? where COMPANY_ID = ?', [name, city, id]);
                 //res.json(updaterows);
-                res.send('Record updated/created successfully');
+                res.status(200).send('Updated successfully');
             }
             else {
                 const insertrows = await conn.query('INSERT INTO company SET COMPANY_ID = ?, COMPANY_NAME = ?, COMPANY_CITY = ?', [id, name, city]);
                 //res.json(insertrows);
-                res.status(500).send('Record inserted successfully!');
+                res.status(201).send('Inserted successfully');
             }
         } catch (e) {
             res.status(500).send('Error from put');
