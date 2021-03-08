@@ -55,7 +55,7 @@ app.get('/', (req, res) => {
 
 app.get('/say', async (req, res) => {
     var keyword = req.query.keyword;
-    var url = 'https://q5x4rs1yai.execute-api.us-east-2.amazonaws.com/prod/test?say='
+    var url = 'https://q5x4rs1yai.execute-api.us-east-2.amazonaws.com/prod/test?keyword='
     //console.log(url + `${keyword}`);
      await axios.get(url + `${keyword}`)
         .then(function (response) {
