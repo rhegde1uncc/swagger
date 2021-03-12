@@ -60,7 +60,7 @@ app.get('/say', async (req, res) => {
      await axios.get(url + `${keyword}`)
         .then(function (response) {
             //console.log(response.data);
-            res.status(200).json(response.data);
+            res.status(200).send(response.data);
         })
         .catch(function (error) {
             res.status(500).send('Error from Lambda ');
